@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>From Raw Files to AI-Ready Data</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --warning: #f59e0b;
+            --light: #f8fafc;
+            --soft-blue: #eff6ff;
+            --soft-green: #ecfdf5;
+            --soft-red: #fef2f2;
+            --border: #cbd5e1;
+            --text: #1e293b;
+            --muted: #64748b;
+            --card: #ffffff;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Arial, sans-serif;
+            background: #f4f7fb;
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        header {
+            background: linear-gradient(135deg, #1d4ed8, #2563eb);
+            color: white;
+            padding: 32px 20px;
+            text-align: center;
+        }
+
+        header h1 {
+            margin: 0 0 10px 0;
+            font-size: 2rem;
+        }
+
+        header p {
+            margin: 0 auto;
+            max-width: 900px;
+            font-size: 1rem;
+        }
+
+        main {
+            max-width: 1100px;
+            margin: 24px auto;
+            padding: 0 16px 40px;
+        }
+
+        section {
+            background: var(--card);
+            border-radius: 14px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+            border: 1px solid #e2e8f0;
+        }
+
+        h2 {
+            margin-top: 0;
+            color: #0f172a;
+        }
+
+        h3 {
+            margin-bottom: 8px;
+        }
+
+        .instructions {
+            background: var(--soft-blue);
+            border-left: 5px solid var(--primary);
+            padding: 14px 16px;
+            border-radius: 10px;
+            margin-bottom: 18px;
+        }
+
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 15px;
+            transition: 0.2s;
+            margin: 6px 6px 6px 0;
+        }
+
+        .btn:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn.secondary {
+            background: #64748b;
+        }
+
+        .btn.secondary:hover {
+            background: #475569;
+        }
+
+        .btn.success {
+            background: var(--success);
+        }
+
+        .btn.warning {
+            background: var(--warning);
+        }
+
+        .feedback {
+            margin-top: 12px;
+            padding: 12px;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .feedback.correct {
+            display: block;
+            background: var(--soft-green);
+            border: 1px solid #86efac;
+            color: #166534;
+        }
+
+        .feedback.incorrect {
+            display: block;
+            background: var(--soft-red);
+            border: 1px solid #fecaca;
+            color: #991b1b;
+        }
+
+        .feedback.info {
+            display: block;
+            background: #f1f5f9;
+            border: 1px solid var(--border);
+            color: #334155;
+        }
+
+        pre {
+            background: #0f172a;
+            color: #e2e8f0;
+            padding: 16px;
+            border-radius: 10px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+
+        code {
+            font-family: Consolas, Monaco, "Courier New", monospace;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        @media (max-width: 800px) {
+            .grid-2,
+            .grid-3 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Activity 1: Drag and Drop */
+        .drag-layout {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 18px;
+        }
+
+        .source-column,
+        .drop-zone {
+            min-height: 260px;
+            background: #f8fafc;
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 12px;
+        }
+
+        .drop-zone {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .drop-zone h3 {
+            text-align: center;
+            margin: 0 0 8px;
+        }
+
+        .drop-zone.drag-over {
+            background: #dbeafe;
+            border-color: var(--primary);
+        }
+
+        .drag-card {
+            background: white;
+            border-left: 5px solid var(--primary);
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 10px;
+            cursor: grab;
+            box-shadow: 0 2px 6px rgba(15, 23, 42, 0.10);
+        }
+
+        .drag-card:active {
+            cursor: grabbing;
+        }
+
+        .drag-card.correct {
+            border-left-color: var(--success);
+            background: var(--soft-green);
+            cursor: default;
+        }
+
+        .drag-card.wrong {
+            border-left-color: var(--danger);
+            animation: shake 0.45s;
+        }
+
+        .small-note {
+            font-size: 0.88rem;
+            color: var(--muted);
+        }
+
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+            100% { transform: translateX(0); }
+        }
+
+        @media (max-width: 900px) {
+            .drag-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Activity 2: Click-to-identify */
+        .dataset-line {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 10px;
+            border-radius: 8px;
+            font-family: Consolas, Monaco, "Courier New", monospace;
+            margin: 8px 0;
+        }
+
+        .clickable-problem {
+            display: inline-block;
+            padding: 2px 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            border: 1px solid transparent;
+        }
+
+        .clickable-problem:hover {
+            background: #dbeafe;
+            border-color: var(--primary);
+        }
+
+        .clickable-problem.found {
+            background: #dcfce7;
+            border-color: var(--success);
+        }
+
+        /* Activity 4: Workflow ordering */
+        .workflow-area {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            min-height: 80px;
+            background: #f8fafc;
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 14px;
+        }
+
+        .workflow-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-left: 5px solid var(--primary);
+            border-radius: 10px;
+            padding: 10px 12px;
+            cursor: grab;
+            box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+        }
+
+        .workflow-card.dragging {
+            opacity: 0.5;
+        }
+
+        /* Activity 5: JSON explorer */
+        .option {
+            display: block;
+            width: 100%;
+            text-align: left;
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            padding: 12px;
+            border-radius: 10px;
+            margin: 8px 0;
+            cursor: pointer;
+            font-size: 15px;
+        }
+
+        .option:hover {
+            background: #e0f2fe;
+        }
+
+        .option.selected-correct {
+            background: var(--soft-green);
+            border-color: var(--success);
+        }
+
+        .option.selected-wrong {
+            background: var(--soft-red);
+            border-color: var(--danger);
+        }
+
+        /* Activity 6: checklist */
+        .check-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #f8fafc;
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+            margin: 8px 0;
+        }
+
+        .progress-box {
+            background: #f1f5f9;
+            padding: 12px;
+            border-radius: 10px;
+            margin-top: 12px;
+            font-weight: 600;
+        }
+
+        footer {
+            text-align: center;
+            color: var(--muted);
+            margin: 20px 0;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>From Raw Files to AI-Ready Data</h1>
+        <p>Interactive class activity for Lesson 1: Python Data Ingestion and Basic Cleaning</p>
+    </header>
+
+    <main>
+        <section>
+            <h2>Activity Overview</h2>
+            <div class="instructions">
+                <strong>Goal:</strong> Practice how raw files become clean, organized, AI-ready data. You will identify file types, find data problems, simulate cleaning steps, order a basic data workflow, explore JSON data, and complete an AI readiness check.
+            </div>
+            <p>
+                Artificial Intelligence depends on data. Before data can be used for analysis or model training, it must be loaded, inspected, cleaned, organized, and saved. This process is called <strong>data ingestion and preparation</strong>.
+            </p>
+        </section>
+
+        <!-- Activity 1 -->
+        <section>
+            <h2>1. Match the File Type</h2>
+            <p class="instructions">Drag each data example into the correct file format: <strong>.txt</strong>, <strong>.csv</strong>, or <strong>.json</strong>.</p>
+
+            <button class="btn secondary" onclick="resetFileTypeGame()">↻ Reset Activity</button>
+
+            <div class="drag-layout">
+                <div class="source-column" id="fileTypeSource">
+                    <!-- Cards loaded by JavaScript -->
+                </div>
+
+                <div class="grid-3">
+                    <div class="drop-zone" id="txt" ondrop="dropFileType(event)" ondragover="allowDrop(event)">
+                        <h3>.txt<br><span class="small-note">Raw text</span></h3>
+                    </div>
+                    <div class="drop-zone" id="csv" ondrop="dropFileType(event)" ondragover="allowDrop(event)">
+                        <h3>.csv<br><span class="small-note">Rows and columns</span></h3>
+                    </div>
+                    <div class="drop-zone" id="json" ondrop="dropFileType(event)" ondragover="allowDrop(event)">
+                        <h3>.json<br><span class="small-note">Structured / nested data</span></h3>
+                    </div>
+                </div>
+            </div>
+
+            <div id="fileTypeFeedback" class="feedback info">Drag a card to a file format to check your answer.</div>
+        </section>
+
+        <!-- Activity 2 -->
+        <section>
+            <h2>2. Find the Data Problems</h2>
+            <p class="instructions">Click the parts of the CSV data that show a data quality problem.</p>
+
+            <div class="dataset-line">name,score,status</div>
+            <div class="dataset-line">Ana,85,Pass</div>
+            <div class="dataset-line">Luis,62,Fail</div>
+            <div class="dataset-line">Marta,91,Pass</div>
+            <div class="dataset-line"><span class="clickable-problem" data-problem="Carlos has a missing score. Missing values must be handled before using data for AI training.">Carlos,,Fail</span></div>
+            <div class="dataset-line">Elena,<span class="clickable-problem" data-problem="Elena’s score has extra spaces. We should use .strip() before converting the score into a number."> 78 </span>,Pass</div>
+
+            <button class="btn secondary" onclick="resetProblemFinder()">↻ Reset</button>
+
+            <div id="problemFeedback" class="feedback info">Click on a problem in the dataset.</div>
+        </section>
+
+        <!-- Activity 3 -->
+        <section>
+            <h2>3. Data Cleaning Simulator</h2>
+            <p class="instructions">Watch how a messy value becomes ready for analysis. Apply each cleaning step in order.</p>
+
+            <div class="grid-2">
+                <div>
+                    <h3>Current Value</h3>
+                    <pre><code id="cleaningValue">" 78 "</code></pre>
+
+                    <button class="btn" onclick="applyStrip()">Apply .strip()</button>
+                    <button class="btn success" onclick="applyInt()">Apply int()</button>
+                    <button class="btn secondary" onclick="resetCleaningSimulator()">↻ Reset</button>
+                </div>
+
+                <div>
+                    <h3>Explanation</h3>
+                    <div id="cleaningFeedback" class="feedback info">
+                        Start with a raw score value that contains extra spaces. The value is still text.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Activity 4 -->
+        <section>
+            <h2>4. Build the Data Preparation Workflow</h2>
+            <p class="instructions">Drag the workflow steps into the correct order.</p>
+
+            <div id="workflowArea" class="workflow-area">
+                <!-- Workflow cards loaded by JS -->
+            </div>
+
+            <button class="btn" onclick="checkWorkflow()">Check Order</button>
+            <button class="btn secondary" onclick="resetWorkflow()">↻ Reset</button>
+
+            <div id="workflowFeedback" class="feedback info">Arrange the steps from the first action to the final action.</div>
+        </section>
+
+        <!-- Activity 5 -->
+        <section>
+            <h2>5. JSON Explorer: Access the Correct Value</h2>
+            <p class="instructions">Read the JSON-like data and choose the expression that accesses Ana’s score.</p>
+
+            <pre><code>[
+    {
+        "name": "Ana",
+        "score": 85,
+        "status": "Pass"
+    },
+    {
+        "name": "Luis",
+        "score": 62,
+        "status": "Fail"
+    }
+]</code></pre>
+
+            <button class="option" onclick="checkJsonOption(this, false)">students["score"]</button>
+            <button class="option" onclick="checkJsonOption(this, true)">students[0]["score"]</button>
+            <button class="option" onclick="checkJsonOption(this, false)">students["Ana"]["score"]</button>
+            <button class="option" onclick="checkJsonOption(this, false)">students[1]["score"]</button>
+
+            <div id="jsonFeedback" class="feedback info">Choose one answer.</div>
+        </section>
+
+        <!-- Activity 6 -->
+        <section>
+            <h2>6. Final AI Readiness Check</h2>
+            <p class="instructions">Use the checklist to decide whether the dataset is ready for a simple AI model.</p>
+
+            <pre><code>name,score,status
+Ana,85,Pass
+Luis,62,Fail
+Carlos,,Fail
+Elena, 78 ,Pass</code></pre>
+
+            <div class="check-item">
+                <input type="checkbox" class="readiness-check" onchange="updateReadiness()">
+                <label>Remove extra spaces from values such as <code> 78 </code>.</label>
+            </div>
+            <div class="check-item">
+                <input type="checkbox" class="readiness-check" onchange="updateReadiness()">
+                <label>Detect and handle the missing score for Carlos.</label>
+            </div>
+            <div class="check-item">
+                <input type="checkbox" class="readiness-check" onchange="updateReadiness()">
+                <label>Convert numeric score values from text into integers.</label>
+            </div>
+            <div class="check-item">
+                <input type="checkbox" class="readiness-check" onchange="updateReadiness()">
+                <label>Organize each student as a dictionary inside a list.</label>
+            </div>
+            <div class="check-item">
+                <input type="checkbox" class="readiness-check" onchange="updateReadiness()">
+                <label>Save the cleaned data into a new file.</label>
+            </div>
+
+            <div id="readinessProgress" class="progress-box">Progress: 0 / 5 steps completed.</div>
+            <div id="readinessFeedback" class="feedback info">Complete all steps to make the dataset AI-ready.</div>
+        </section>
+
+        <!-- Activity 7 -->
+        <section>
+            <h2>7. Quick Reflection Quiz</h2>
+            <p class="instructions">Answer each question and check your result.</p>
+
+            <h3>Question 1</h3>
+            <p>What does data ingestion mean?</p>
+            <button class="option quiz-option" onclick="checkQuiz(this, true, 'quiz1')">Bringing data into a program so it can be processed.</button>
+            <button class="option quiz-option" onclick="checkQuiz(this, false, 'quiz1')">Training a model without using files.</button>
+            <button class="option quiz-option" onclick="checkQuiz(this, false, 'quiz1')">Deleting all missing values automatically.</button>
+            <div id="quiz1" class="feedback info">Choose one answer.</div>
+
+            <h3>Question 2</h3>
+            <p>Which file format is usually best for rows and columns?</p>
+            <button class="option quiz-option" onclick="checkQuiz(this, false, 'quiz2')">.txt</button>
+            <button class="option quiz-option" onclick="checkQuiz(this, true, 'quiz2')">.csv</button>
+            <button class="option quiz-option" onclick="checkQuiz(this, false, 'quiz2')">.png</button>
+            <div id="quiz2" class="feedback info">Choose one answer.</div>
+
+            <h3>Question 3</h3>
+            <p>Why should scores be converted into numbers before AI training?</p>
+            <button class="option quiz-option" onclick="checkQuiz(this, false, 'quiz3')">Because AI models only use file names.</button>
+            <button class="option quiz-option" onclick="checkQuiz(this, true, 'quiz3')">Because numeric values are needed for calculations and pattern learning.</button>
+            <button class="option quiz-option" onclick="checkQuiz(this, false, 'quiz3')">Because text files cannot be opened in Python.</button>
+            <div id="quiz3" class="feedback info">Choose one answer.</div>
+        </section>
+
+        <footer>
+            Lesson 1 Activity: Python Data Ingestion and Basic Cleaning
+        </footer>
+    </main>
+
+    <script>
+        /* General drag helpers */
+        function allowDrop(ev) {
+            ev.preventDefault();
+            ev.currentTarget.classList.add("drag-over");
+        }
+
+        document.addEventListener("dragleave", function(ev) {
+            if (ev.target.classList && ev.target.classList.contains("drop-zone")) {
+                ev.target.classList.remove("drag-over");
+            }
+        });
+
+        /* Activity 1: Match File Type */
+        const fileTypeItems = [
+            {
+                id: "ft1",
+                text: "Customer comments written line by line",
+                type: "txt",
+                note: "Correct! A .txt file is useful for simple raw text."
+            },
+            {
+                id: "ft2",
+                text: "name,score,status<br>Ana,85,Pass<br>Luis,62,Fail",
+                type: "csv",
+                note: "Correct! A .csv file is useful for table-like data."
+            },
+            {
+                id: "ft3",
+                text: '[{"name": "Ana", "score": 85}]',
+                type: "json",
+                note: "Correct! A .json file is useful for structured data."
+            },
+            {
+                id: "ft4",
+                text: "Raw product reviews for sentiment analysis",
+                type: "txt",
+                note: "Correct! Text comments can be stored in a .txt file."
+            },
+            {
+                id: "ft5",
+                text: "Rows of product sales with columns for price and category",
+                type: "csv",
+                note: "Correct! Rows and columns are a natural fit for .csv files."
+            },
+            {
+                id: "ft6",
+                text: "Nested user profile from a web API",
+                type: "json",
+                note: "Correct! JSON is common for API responses and nested data."
+            }
+        ];
+
+        function initFileTypeGame() {
+            const source = document.getElementById("fileTypeSource");
+            source.innerHTML = "";
+            const shuffled = [...fileTypeItems].sort(() => Math.random() - 0.5);
+
+            shuffled.forEach(item => {
+                const card = document.createElement("div");
+                card.className = "drag-card";
+                card.id = item.id;
+                card.draggable = true;
+                card.dataset.type = item.type;
+                card.dataset.note = item.note;
+                card.innerHTML = `<strong>${item.text}</strong>`;
+                card.addEventListener("dragstart", dragFileType);
+                source.appendChild(card);
+            });
+
+            document.querySelectorAll("#txt .drag-card, #csv .drag-card, #json .drag-card").forEach(card => card.remove());
+            setFeedback("fileTypeFeedback", "info", "Drag a card to a file format to check your answer.");
+        }
+
+        function dragFileType(ev) {
+            ev.dataTransfer.setData("text/plain", ev.target.id);
+        }
+
+        function dropFileType(ev) {
+            ev.preventDefault();
+            ev.currentTarget.classList.remove("drag-over");
+
+            const cardId = ev.dataTransfer.getData("text/plain");
+            const card = document.getElementById(cardId);
+            const targetType = ev.currentTarget.id;
+
+            if (!card) return;
+
+            if (card.dataset.type === targetType) {
+                ev.currentTarget.appendChild(card);
+                card.classList.add("correct");
+                card.classList.remove("wrong");
+                card.draggable = false;
+                setFeedback("fileTypeFeedback", "correct", card.dataset.note);
+            } else {
+                card.classList.add("wrong");
+                setFeedback("fileTypeFeedback", "incorrect", "Not quite. Think about how this data is structured.");
+                setTimeout(() => card.classList.remove("wrong"), 500);
+            }
+        }
+
+        function resetFileTypeGame() {
+            document.querySelectorAll(".drop-zone .drag-card").forEach(card => card.remove());
+            initFileTypeGame();
+        }
+
+        /* Activity 2: Problem Finder */
+        document.querySelectorAll(".clickable-problem").forEach(item => {
+            item.addEventListener("click", function() {
+                this.classList.add("found");
+                setFeedback("problemFeedback", "correct", this.dataset.problem);
+            });
+        });
+
+        function resetProblemFinder() {
+            document.querySelectorAll(".clickable-problem").forEach(item => item.classList.remove("found"));
+            setFeedback("problemFeedback", "info", "Click on a problem in the dataset.");
+        }
+
+        /* Activity 3: Cleaning simulator */
+        let cleaningStep = 0;
+
+        function applyStrip() {
+            if (cleaningStep === 0) {
+                cleaningStep = 1;
+                document.getElementById("cleaningValue").textContent = '"78"';
+                setFeedback("cleaningFeedback", "correct", "Good. .strip() removed the spaces before and after the value. The value is cleaner, but it is still text.");
+            } else if (cleaningStep === 1) {
+                setFeedback("cleaningFeedback", "info", ".strip() has already been applied. The next step is to convert the value into an integer.");
+            } else {
+                setFeedback("cleaningFeedback", "info", "The value is already clean and numeric.");
+            }
+        }
+
+        function applyInt() {
+            if (cleaningStep === 0) {
+                setFeedback("cleaningFeedback", "incorrect", "Apply .strip() first. Cleaning spaces before conversion is a safer habit.");
+            } else if (cleaningStep === 1) {
+                cleaningStep = 2;
+                document.getElementById("cleaningValue").textContent = "78";
+                setFeedback("cleaningFeedback", "correct", "Excellent. int() converted the text value into a number that can be used for calculations.");
+            } else {
+                setFeedback("cleaningFeedback", "info", "The value is already an integer.");
+            }
+        }
+
+        function resetCleaningSimulator() {
+            cleaningStep = 0;
+            document.getElementById("cleaningValue").textContent = '" 78 "';
+            setFeedback("cleaningFeedback", "info", "Start with a raw score value that contains extra spaces. The value is still text.");
+        }
+
+        /* Activity 4: Workflow ordering */
+        const workflowSteps = [
+            "Read data",
+            "Inspect data",
+            "Clean data",
+            "Organize data",
+            "Save clean data"
+        ];
+
+        function initWorkflow() {
+            const area = document.getElementById("workflowArea");
+            area.innerHTML = "";
+            const shuffled = [...workflowSteps].sort(() => Math.random() - 0.5);
+
+            shuffled.forEach(step => {
+                const card = document.createElement("div");
+                card.className = "workflow-card";
+                card.draggable = true;
+                card.textContent = step;
+                area.appendChild(card);
+            });
+
+            addWorkflowDragEvents();
+            setFeedback("workflowFeedback", "info", "Arrange the steps from the first action to the final action.");
+        }
+
+        function addWorkflowDragEvents() {
+            const area = document.getElementById("workflowArea");
+            const cards = document.querySelectorAll(".workflow-card");
+
+            cards.forEach(card => {
+                card.addEventListener("dragstart", () => card.classList.add("dragging"));
+                card.addEventListener("dragend", () => card.classList.remove("dragging"));
+            });
+
+            area.addEventListener("dragover", event => {
+                event.preventDefault();
+                const afterElement = getDragAfterElement(area, event.clientX);
+                const dragging = document.querySelector(".workflow-card.dragging");
+
+                if (!dragging) return;
+
+                if (afterElement == null) {
+                    area.appendChild(dragging);
+                } else {
+                    area.insertBefore(dragging, afterElement);
+                }
+            });
+        }
+
+        function getDragAfterElement(container, x) {
+            const draggableElements = [...container.querySelectorAll(".workflow-card:not(.dragging)")];
+
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = x - box.left - box.width / 2;
+
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+
+        function checkWorkflow() {
+            const cards = [...document.querySelectorAll("#workflowArea .workflow-card")];
+            const current = cards.map(card => card.textContent.trim());
+            const isCorrect = current.every((step, index) => step === workflowSteps[index]);
+
+            if (isCorrect) {
+                setFeedback("workflowFeedback", "correct", "Correct! A basic data preparation workflow is: Read → Inspect → Clean → Organize → Save.");
+            } else {
+                setFeedback("workflowFeedback", "incorrect", "Not yet. Think about what must happen before data can be cleaned and saved.");
+            }
+        }
+
+        function resetWorkflow() {
+            initWorkflow();
+        }
+
+        /* Activity 5: JSON Explorer */
+        function checkJsonOption(button, isCorrect) {
+            document.querySelectorAll("#jsonFeedback ~ .option").forEach(btn => {
+                btn.classList.remove("selected-correct", "selected-wrong");
+            });
+
+            document.querySelectorAll("section:nth-of-type(6) .option").forEach(btn => {
+                btn.classList.remove("selected-correct", "selected-wrong");
+            });
+
+            if (isCorrect) {
+                button.classList.add("selected-correct");
+                setFeedback("jsonFeedback", "correct", 'Correct! students[0] selects the first student, and ["score"] selects Ana’s score.');
+            } else {
+                button.classList.add("selected-wrong");
+                setFeedback("jsonFeedback", "incorrect", "Not quite. Remember that the data starts as a list, so we need an index like [0] first.");
+            }
+        }
+
+        /* Activity 6: Readiness checklist */
+        function updateReadiness() {
+            const checks = document.querySelectorAll(".readiness-check");
+            const completed = [...checks].filter(check => check.checked).length;
+
+            document.getElementById("readinessProgress").textContent = `Progress: ${completed} / ${checks.length} steps completed.`;
+
+            if (completed === checks.length) {
+                setFeedback("readinessFeedback", "correct", "Excellent! The dataset is much closer to being AI-ready because it has been inspected, cleaned, organized, and saved.");
+            } else if (completed > 0) {
+                setFeedback("readinessFeedback", "info", "Good progress. Continue checking the steps needed to prepare the dataset.");
+            } else {
+                setFeedback("readinessFeedback", "info", "Complete all steps to make the dataset AI-ready.");
+            }
+        }
+
+        /* Activity 7: Quiz */
+        function checkQuiz(button, isCorrect, feedbackId) {
+            const parent = button.parentElement;
+            parent.querySelectorAll(".quiz-option").forEach(btn => {
+                if (btn.getAttribute("onclick") && btn.getAttribute("onclick").includes(feedbackId)) {
+                    btn.classList.remove("selected-correct", "selected-wrong");
+                }
+            });
+
+            if (isCorrect) {
+                button.classList.add("selected-correct");
+                setFeedback(feedbackId, "correct", "Correct!");
+            } else {
+                button.classList.add("selected-wrong");
+                setFeedback(feedbackId, "incorrect", "Not quite. Try again and review the lesson idea.");
+            }
+        }
+
+        /* Feedback helper */
+        function setFeedback(id, type, message) {
+            const element = document.getElementById(id);
+            element.className = "feedback " + type;
+            element.textContent = message;
+        }
+
+        /* Initialize all activities */
+        initFileTypeGame();
+        initWorkflow();
+    </script>
+</body>
+</html>
